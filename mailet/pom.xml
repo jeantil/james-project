@@ -51,8 +51,8 @@
         <module>crypto</module>
         <module>icalendar</module>
         <module>mailetdocs-maven-plugin</module>
-        <module>standard</module>
         <module>scala</module>
+        <module>standard</module>
         <module>test</module>
     </modules>
 
