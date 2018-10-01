@@ -19,7 +19,7 @@
 
 package org.apache.james.transport.mailets
 
-import java.util.Collection
+import java.util.{Collection => JUCollection}
 
 import org.apache.james.core.MailAddress
 import org.apache.james.transport.matchers.AbstractNetworkMatcher
@@ -29,21 +29,24 @@ object XOriginatingIpInNetwork {
   val X_ORIGINATING_IP: String = "X-Originating-IP"
 }
 
+/**
+  * <p>
+  * Checks the first X_ORIGINATING_IP IP address against a comma- delimited list
+  * of IP addresses, domain names or sub-nets.
+  * </p>
+  * <p>
+  * See AbstractNetworkMatcher for details on how to specify entries.
+  * </p>
+  */
 class XOriginatingIpInNetwork extends AbstractNetworkMatcher {
-  override def `match`(mail: Mail): Collection[MailAddress] = {
-    matchOnOriginatingAddr(mail).orNull
-  }
+  override def `match`(mail: Mail): JUCollection[MailAddress] = matchOnOriginatingAddr(mail).orNull
 
-  def matchOnOriginatingAddr(mail: Mail): Option[Collection[MailAddress]] = {
-    Option(mail.getMessage
-      .getHeader(XOriginatingIpInNetwork.X_ORIGINATING_IP))
-      .flatMap(_.headOption)
-      .map(normalizeIP)
-      .filter(matchNetwork)
-      .map(_ => mail.getRecipients)
-  }
+  def matchOnOriginatingAddr(mail: Mail): Option[JUCollection[MailAddress]] = Option(mail.getMessage
+    .getHeader(XOriginatingIpInNetwork.X_ORIGINATING_IP))
+    .flatMap(_.headOption)
+    .map(normalizeIP)
+    .filter(matchNetwork)
+    .map(_ => mail.getRecipients)
 
-  private def normalizeIP(ip: String): String = {
-    ip.replace("[", "").replace("]", "")
-  }
+  private def normalizeIP(ip: String): String = ip.replace("[", "").replace("]", "")
 }
