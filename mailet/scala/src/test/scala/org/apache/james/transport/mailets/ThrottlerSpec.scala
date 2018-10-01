@@ -67,7 +67,16 @@ class ThrottlerSpec extends Specification {
       val defaultConfig = FakeMailetConfig.builder()
         .mailetName("throttler")
         .setProperty("period", "foo")
-        .setProperty("count", "a")
+        .setProperty("count", "1")
+        .build()
+      val throttler = new Throttler()
+      throttler.init(defaultConfig) should throwA[MailetException]
+    }
+    "not start if the period parameter is too small" in {
+      val defaultConfig = FakeMailetConfig.builder()
+        .mailetName("throttler")
+        .setProperty("period", "1ns")
+        .setProperty("count", "1")
         .build()
       val throttler = new Throttler()
       throttler.init(defaultConfig) should throwA[MailetException]

@@ -34,6 +34,52 @@ object Throttler {
   val COUNT_PARAM = "count"
 }
 
+/**
+  * <p>This mailet keeps track of the sending rate for each sender
+  * going through the email server (instance based). It rejects emails with
+  * <i>"454 Throttling – Maximum sending rate exceeded"</i> when the rate goes
+  * over a fixed limit.</p>
+  * <p/>
+  * <p>The tracking is done using a list of timestamps of messages previously
+  * seen for each individual sender. This means that allowing 3600 messages per
+  * hour may end up consuming more memory (upto 3600 java.time.Instant instances
+  * per sender if they continuously send emails) than 600 messages per 10
+  * minutes</p>
+  * <p/>
+  * <p>This mailet expects 2 configuration parameters :
+  * <ul>
+  * <li><i>count</i> is expected to be an integer
+  * <li><i>period</i> is expected to be an finite duration greater than 1ms.
+  * It can be expressed using the scala duration DSL.
+  * </ul>
+  *</p>
+  * <pre><code>
+  * &lt;mailet match=&quot;All&quot; class=&quot;&lt;Throttler&gt;&quot;&gt;
+  * &lt;period&gt;1 minute&lt;/period&gt;
+  * &lt;count&gt;10&lt;/count&gt;
+  * &lt;/mailet&gt;
+  * </code></pre>
+  *
+  * <p>The scala Duration dsl expects a number (integer or fractional) followed by
+  * a unit. The unit can be one of
+  *<ul>
+  * <li> d|day|days, h|hour|hours
+  * <li> min|minute|minutes
+  * <li> s|second|seconds
+  * <li> ms|milli|millis|millisecond|milliseconds
+  * <li> µs|micro|micros|microsecond|microseconds
+  * <li> ns|nano|nanos|nanosecond|nanoseconds
+  *</ul>
+  * for exemple the following strings are valid durations:</p>
+  *<pre><code>
+  * 10 seconds
+  * 1 day
+  * 8h
+  * 100ns
+  * 80millis
+  *</code></pre>
+  *
+  */
 class Throttler(clock: Clock = Clock.systemUTC()) extends Mailet {
   private var config: MailetConfig = _
   private val safeRates: AtomicReference[Map[MailAddress, Seq[Instant]]] =
@@ -48,24 +94,28 @@ class Throttler(clock: Clock = Clock.systemUTC()) extends Mailet {
     this.config = config
   }
 
-  private def parseCount(config: MailetConfig) = {
-    Try(config.getInitParameter(Throttler.COUNT_PARAM).toInt)
-      .getOrElse(
-        throw new MailetException(
-          s"Missing or invalid configuration parameter ${Throttler.COUNT_PARAM} " +
-            s"for mailet ${config.getMailetName} ($getMailetInfo)"))
-  }
+  private def parseCount(config: MailetConfig): Int = Try(config.getInitParameter(Throttler.COUNT_PARAM).toInt)
+    .getOrElse(
+      throw new MailetException(
+        s"Missing or invalid configuration parameter ${Throttler.COUNT_PARAM} " +
+          s"for mailet ${config.getMailetName} ($getMailetInfo)"))
 
-  private def parsePeriod(config: MailetConfig) = {
+  private def parsePeriod(config: MailetConfig): FiniteDuration = {
     val duration = Try(Duration(config.getInitParameter(Throttler.PERIOD_PARAM)))
       .getOrElse(
         throw new MailetException(
           s"Missing or invalid configuration parameter ${Throttler.PERIOD_PARAM} " +
             s"for mailet ${config.getMailetName} ($getMailetInfo)"))
     if (duration.isFinite()) {
-      FiniteDuration(duration.toMillis, TimeUnit.MILLISECONDS)
+      if (duration.toMillis > 0) {
+        FiniteDuration(duration.toMillis, TimeUnit.MILLISECONDS)
+      } else {
+        throw new MailetException(
+          s"${Throttler.PERIOD_PARAM} must be a finite duration greater or equal to 1ms")
+      }
     } else {
-      throw new MailetException(s"${Throttler.PERIOD_PARAM} must be a finite duration")
+      throw new MailetException(
+        s"${Throttler.PERIOD_PARAM} must be a finite duration greater or equal to 1ms")
     }
   }
 
@@ -74,7 +124,7 @@ class Throttler(clock: Clock = Clock.systemUTC()) extends Mailet {
     val now = Instant.now(clock)
     val limit = now.minusMillis(period.toMillis)
     val updatedRates = safeRates.updateAndGet(rates => {
-      val instants: Seq[Instant] = rates(sender)
+      val instants = rates(sender)
       rates + (sender -> (now +: instants.filter(_.isAfter(limit))))
     })
 
@@ -89,5 +139,5 @@ class Throttler(clock: Clock = Clock.systemUTC()) extends Mailet {
 
   override def getMailetConfig: MailetConfig = config
 
-  override def getMailetInfo: String = "Email Throttler"
+  override def getMailetInfo = "Email Throttler"
 }
