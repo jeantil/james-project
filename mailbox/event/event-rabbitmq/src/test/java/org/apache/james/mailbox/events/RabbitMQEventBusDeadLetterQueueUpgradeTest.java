@@ -73,6 +73,12 @@ class RabbitMQEventBusDeadLetterQueueUpgradeTest {
 
     @Test
     @Tag(Unstable.TAG)
+    /*
+    Error
+    channel error; protocol method: #method<channel.close>(reply-code=406, reply-text=PRECONDITION_FAILED - inequivalent arg 'x-dead-letter-exchange' for queue 'mailboxEvent-workQueue-org.apache.james.mailbox.events.EventBusTestFixture$GroupA' in vhost '/': received none but current is the value 'mailboxEvent-dead-letter-exchange' of ty..., class-id=50, method-id=10)
+    Stacktrace
+    com.rabbitmq.client.ShutdownSignalException: channel error; protocol method: #method<channel.close>(reply-code=406, reply-text=PRECONDITION_FAILED - inequivalent arg 'x-dead-letter-exchange' for queue 'mailboxEvent-workQueue-org.apache.james.mailbox.events.EventBusTestFixture$GroupA' in vhost '/': received none but current is the value 'mailboxEvent-dead-letter-exchange' of ty..., class-id=50, method-id=10)
+     */
     void eventBusShouldStartWhenDeadLetterUpgradeWasNotPerformed() {
         GroupA registeredGroup = new GroupA();
         WorkQueueName workQueueName = WorkQueueName.of(registeredGroup);
