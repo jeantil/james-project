@@ -92,7 +92,7 @@ pipeline {
                 stage('Stable Tests') {
                     steps {
                         echo 'Running tests'
-                        sh 'mvn -B -e -fae test '
+                        sh 'mvn -v && mvn -B -e -fae test '
                     }
                     post {
                         always {
@@ -106,7 +106,7 @@ pipeline {
                     steps {
                         echo 'Running unstable tests'
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            sh 'mvn -B -e -fae test -Punstable-tests'
+                            sh 'mvn -v && mvn -B -e -fae test -Punstable-tests'
                         }
                     }
                     post {
