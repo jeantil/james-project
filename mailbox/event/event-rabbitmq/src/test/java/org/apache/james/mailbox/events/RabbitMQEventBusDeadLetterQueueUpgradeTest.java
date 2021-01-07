@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 import org.apache.james.backends.rabbitmq.RabbitMQExtension;
 import org.apache.james.event.json.EventSerializer;
+import org.apache.james.junit.categories.Unstable;
 import org.apache.james.mailbox.events.EventBusTestFixture.GroupA;
 import org.apache.james.mailbox.events.GroupRegistration.WorkQueueName;
 import org.apache.james.mailbox.model.TestId;
@@ -36,6 +37,7 @@ import org.apache.james.mailbox.util.EventCollector;
 import org.apache.james.metrics.tests.RecordingMetricFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -70,6 +72,7 @@ class RabbitMQEventBusDeadLetterQueueUpgradeTest {
     }
 
     @Test
+    @Tag(Unstable.TAG)
     void eventBusShouldStartWhenDeadLetterUpgradeWasNotPerformed() {
         GroupA registeredGroup = new GroupA();
         WorkQueueName workQueueName = WorkQueueName.of(registeredGroup);
