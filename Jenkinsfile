@@ -97,7 +97,7 @@ pipeline {
                     post {
                         always {
                             junit(testResults: '**/surefire-reports/*.xml', allowEmptyResults: false)
-                            junit(testResults: '**/failsafe-reports/*.xml', allowEmptyResults: false)
+                            junit(testResults: '**/failsafe-reports/*.xml', allowEmptyResults: true)
 			    archiveArtifacts artifacts: '**/surefire-reports/*.dumpstream' , fingerprint: true
                         }
                     }
