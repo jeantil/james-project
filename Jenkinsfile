@@ -50,7 +50,7 @@ pipeline {
         // When we have test-fails e.g. we don't need to run the remaining steps
         skipStagesAfterUnstable()
         buildDiscarder(
-                logRotator(artifactNumToKeepStr: '5', numToKeepStr: '10')
+                logRotator(artifactNumToKeepStr: '10', numToKeepStr: '30')
         )
         disableConcurrentBuilds()
     }
@@ -98,7 +98,7 @@ pipeline {
                         always {
                             junit(testResults: '**/surefire-reports/*.xml', allowEmptyResults: false)
                             junit(testResults: '**/failsafe-reports/*.xml', allowEmptyResults: true)
-			    archiveArtifacts artifacts: '**/surefire-reports/*.dumpstream' , fingerprint: true
+                            archiveArtifacts artifacts: '**/surefire-reports/*.dumpstream' , fingerprint: true
                         }
                     }
                 }
@@ -114,7 +114,7 @@ pipeline {
                         always {
                             junit(testResults: '**/surefire-reports/*.xml', allowEmptyResults: true)
                             junit(testResults: '**/failsafe-reports/*.xml', allowEmptyResults: true)
-			    archiveArtifacts artifacts: '**/surefire-reports/*.dumpstream' , fingerprint: true
+                            archiveArtifacts artifacts: '**/surefire-reports/*.dumpstream' , fingerprint: true
                         }
                     }
                 }
