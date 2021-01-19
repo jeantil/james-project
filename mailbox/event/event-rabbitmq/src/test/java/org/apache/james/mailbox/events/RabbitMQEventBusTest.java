@@ -699,7 +699,6 @@ class RabbitMQEventBusTest implements GroupContract.SingleEventBusGroupContract,
                     .operation((threadNumber, step) -> eventBus.dispatch(EVENT, KEY_1).block())
                     .threadCount(THREAD_COUNT)
                     .operationCount(OPERATION_COUNT)
-                    .noErrorLogs()
                     .run()) {
 
                     TimeUnit.SECONDS.sleep(2);
@@ -796,7 +795,6 @@ class RabbitMQEventBusTest implements GroupContract.SingleEventBusGroupContract,
                     .operation((threadNumber, step) -> eventBus.dispatch(EVENT, KEY_1).block())
                     .threadCount(THREAD_COUNT)
                     .operationCount(OPERATION_COUNT)
-                    .noErrorLogs()
                     .run()) {
 
                     TimeUnit.SECONDS.sleep(2);

@@ -108,8 +108,8 @@ public class ConcurrentTestRunner implements Closeable {
             return this;
         }
 
-        public Builder noErrorLogs() {
-            this.noErrorLogs = Optional.of(true);
+        public Builder withErrorLogs() {
+            this.noErrorLogs = Optional.of(false);
             return this;
         }
 
@@ -117,7 +117,7 @@ public class ConcurrentTestRunner implements Closeable {
             return new ConcurrentTestRunner(
                 threadCount,
                 operationCount.orElse(DEFAULT_OPERATION_COUNT),
-                noErrorLogs.orElse(false),
+                noErrorLogs.orElse(true),
                 operation);
         }
 
