@@ -105,24 +105,6 @@ pipeline {
                         }
                     }
                 }
-
-                /*stage('Unstable Tests') {
-                    steps {
-                        echo 'Running unstable tests'
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            sh 'mvn -v && mvn -B -e -fae test -Punstable-tests'
-                        }
-                    }
-                    post {
-                        always {
-                            junit(testResults: '**/surefire-reports/*.xml', allowEmptyResults: true)
-                            junit(testResults: '**/failsafe-reports/*.xml', allowEmptyResults: true)
-                        }
-                        failure {
-                            archiveArtifacts artifacts: '**/surefire-reports/*' , fingerprint: true
-                        }
-                    }
-                }*/
             }
         }
         stage('Deploy') {
