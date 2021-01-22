@@ -106,7 +106,7 @@ pipeline {
                     }
                 }
 
-                stage('Unstable Tests') {
+                /*stage('Unstable Tests') {
                     steps {
                         echo 'Running unstable tests'
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
@@ -122,7 +122,7 @@ pipeline {
                             archiveArtifacts artifacts: '**/surefire-reports/*' , fingerprint: true
                         }
                     }
-                }
+                }*/
             }
         }
         stage('Deploy') {
