@@ -20,14 +20,15 @@
 <!--
     Tag order follows model description at http://maven.apache.org/ref/3.0.3/maven-model/maven.html
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
         <version>21</version>
-        <relativePath />
+        <relativePath/>
     </parent>
 
     <groupId>org.apache.james</groupId>
@@ -36,14 +37,16 @@
     <packaging>pom</packaging>
 
     <name>Apache James Project</name>
-    <description>The Apache Java Enterprise Mail Server (a.k.a. Apache James) is a 100% pure Java SMTP, IMAP, JMAP and POP3 Mail
+    <description>The Apache Java Enterprise Mail Server (a.k.a. Apache James) is a 100% pure Java SMTP, IMAP, JMAP and
+        POP3 Mail
         server.
         We have designed James to be a complete and portable enterprise mail engine solution based on currently
         available open protocols. James is also a mail application platform. We have developed a Java API to let
         you write Java code to process emails that we call the mailet API. A mailet can generate an automatic reply,
         update a database, prevent spam, build a message archive, or whatever you can imagine. A matcher determines
         whether your mailet should process an email in the server. The James project hosts the Mailet API, and James
-        provides an implementation of this mail application platform API.</description>
+        provides an implementation of this mail application platform API.
+    </description>
     <url>https://james.apache.org/</url>
     <inceptionYear>2006</inceptionYear>
 
@@ -82,12 +85,13 @@
             <roles>
                 <role>Developer</role>
             </roles>
-            <timezone />
+            <timezone/>
             <properties>
                 <Donator>Serge was the original donator of the James code, which has since been massively
                     improved by people smarter than him. He tries to answer questions on the listserv and make
                     code
-                    contributions when he does get a rare bit of free time.</Donator>
+                    contributions when he does get a rare bit of free time.
+                </Donator>
             </properties>
         </developer>
         <developer>
@@ -97,7 +101,7 @@
             <roles>
                 <role>Developer</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>sbrewin</id>
@@ -107,7 +111,7 @@
                 <role>Developer</role>
                 <role>PMC Member</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>hilmer</id>
@@ -117,7 +121,7 @@
                 <role>Developer</role>
                 <role>PMC Member</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>noel</id>
@@ -127,7 +131,7 @@
                 <role>Developer</role>
                 <role>PMC Member</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>danny</id>
@@ -139,11 +143,12 @@
                 <role>Developer</role>
                 <role>PMC Member</role>
             </roles>
-            <timezone />
+            <timezone/>
             <properties>
                 <Description>Danny is a member of the Apache Software Foundation and married father
                     of two by night, and by day works as lead technical consultant for the Student Loans
-                    Company ltd.</Description>
+                    Company ltd.
+                </Description>
             </properties>
         </developer>
         <developer>
@@ -179,7 +184,7 @@
                 <role>Developer</role>
                 <role>PMC Member</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>rdonkin</id>
@@ -189,7 +194,7 @@
                 <role>Developer</role>
                 <role>PMC Member</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>niklas</id>
@@ -216,7 +221,7 @@
             <roles>
                 <role>Developer</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>olegk</id>
@@ -226,7 +231,7 @@
                 <role>Developer</role>
                 <role>PMC Member</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>manolo</id>
@@ -236,7 +241,7 @@
                 <role>Developer</role>
                 <role>PMC Member</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>eric</id>
@@ -246,7 +251,7 @@
                 <role>Developer</role>
                 <role>PMC Chair</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>felixk</id>
@@ -265,7 +270,7 @@
                 <role>PMC Member</role>
                 <role>Developer</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>matthieu</id>
@@ -275,7 +280,7 @@
                 <role>PMC Member</role>
                 <role>Developer</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>btellier</id>
@@ -287,7 +292,7 @@
                 <role>PMC Member</role>
                 <role>Developer</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>aduprat</id>
@@ -299,7 +304,7 @@
                 <role>PMC Member</role>
                 <role>Developer</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>rouazana</id>
@@ -310,7 +315,7 @@
             <roles>
                 <role>Developer</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>jhelou</id>
@@ -319,9 +324,9 @@
             <roles>
                 <role>Developer</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
-     </developers>
+    </developers>
 
     <contributors>
         <contributor>
@@ -594,7 +599,7 @@
             This property contains the directory where to deploy when running using "-Psite-reports" profile
             to avoid accidently overriding the common modules website. Empty by default.
         -->
-        <deployTechnicalSiteDirectory />
+        <deployTechnicalSiteDirectory/>
 
         <james.groupId>org.apache.james</james.groupId>
         <james.protocols.groupId>${james.groupId}.protocols</james.protocols.groupId>
@@ -3019,6 +3024,232 @@
                     <version>3.3.2</version>
                 </plugin>
                 <plugin>
+                    <groupId>com.gradle</groupId>
+                    <artifactId>gradle-enterprise-maven-extension</artifactId>
+                    <configuration>
+                        <gradleEnterprise>
+                            <plugins>
+                                <plugin>
+                                    <groupId>net.alchim31.maven</groupId>
+                                    <artifactId>scala-maven-plugin</artifactId>
+                                    <executions>
+                                        <execution>
+                                            <id>scala-compile-first</id>
+                                            <inputs>
+                                                <fileSets>
+                                                    <fileSet>
+                                                        <name>sourceDir</name>
+                                                        <includesProperty>includes</includesProperty>
+                                                        <excludesProperty>excludes</excludesProperty>
+                                                    </fileSet>
+                                                </fileSets>
+                                                <properties>
+                                                    <property>
+                                                        <name>addJavacArgs</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>addScalacArgs</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>args</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>checkMultipleScalaVersions</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>compileOrder</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>encoding</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>failOnMultipleScalaVersions</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>forceUseArgFile</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>javacArgs</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>javacGenerateDebugSymbols</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>notifyCompilation</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>recompileMode</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>release</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>scalaClassName</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>scalaCompatVersion</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>scalaHome</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>scalaVersion</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>sendJavaToScalac</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>skipMain</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>source</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>target</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>useCanonicalPath</name>
+                                                    </property>
+                                                </properties>
+                                                <ignoredProperties>
+                                                    <ignore>additionalDependencies</ignore>
+                                                    <ignore>analysisCacheFile</ignore>
+                                                    <ignore>classpath</ignore>
+                                                    <ignore>compilerPlugins</ignore>
+                                                    <ignore>displayCmd</ignore>
+                                                    <ignore>dependencies</ignore>
+                                                    <ignore>fork</ignore>
+                                                    <ignore>jvmArgs</ignore>
+                                                    <ignore>pluginArtifacts</ignore>
+                                                    <ignore>project</ignore>
+                                                    <ignore>scalaOrganization</ignore>
+                                                    <ignore>secondaryCacheDir</ignore>
+                                                    <ignore>session</ignore>
+                                                </ignoredProperties>
+                                            </inputs>
+                                            <outputs>
+                                                <directories>
+                                                    <directory>
+                                                        <name>outputDir</name>
+                                                    </directory>
+                                                </directories>
+                                                <cacheableBecause>this plugin has CPU-bound goals with well-defined inputs and
+                                                    outputs
+                                                </cacheableBecause>
+                                            </outputs>
+                                        </execution>
+                                        <execution>
+                                            <id>scala-test-compile</id>
+                                            <inputs>
+                                                <fileSets>
+                                                    <fileSet>
+                                                        <name>testSourceDir</name>
+                                                        <includesProperty>includes</includesProperty>
+                                                        <excludesProperty>excludes</excludesProperty>
+                                                    </fileSet>
+                                                </fileSets>
+                                                <properties>
+                                                    <property>
+                                                        <name>addJavacArgs</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>addScalacArgs</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>args</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>checkMultipleScalaVersions</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>compileOrder</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>encoding</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>failOnMultipleScalaVersions</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>forceUseArgFile</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>javacArgs</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>javacGenerateDebugSymbols</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>notifyCompilation</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>recompileMode</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>release</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>scalaClassName</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>scalaCompatVersion</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>scalaHome</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>scalaVersion</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>sendJavaToScalac</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>skip</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>source</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>target</name>
+                                                    </property>
+                                                    <property>
+                                                        <name>useCanonicalPath</name>
+                                                    </property>
+                                                </properties>
+                                                <ignoredProperties>
+                                                    <ignore>additionalDependencies</ignore>
+                                                    <ignore>analysisCacheFile</ignore>
+                                                    <ignore>compilerPlugins</ignore>
+                                                    <ignore>displayCmd</ignore>
+                                                    <ignore>dependencies</ignore>
+                                                    <ignore>fork</ignore>
+                                                    <ignore>jvmArgs</ignore>
+                                                    <ignore>pluginArtifacts</ignore>
+                                                    <ignore>project</ignore>
+                                                    <ignore>scalaOrganization</ignore>
+                                                    <ignore>secondaryCacheDir</ignore>
+                                                    <ignore>session</ignore>
+                                                    <ignore>testAnalysisCacheFile</ignore>
+                                                </ignoredProperties>
+                                            </inputs>
+                                            <outputs>
+                                                <directories>
+                                                    <directory>
+                                                        <name>testOutputDir</name>
+                                                    </directory>
+                                                </directories>
+                                                <cacheableBecause>this plugin has CPU-bound goals with well-defined inputs and
+                                                    outputs
+                                                </cacheableBecause>
+                                            </outputs>
+                                        </execution>
+                                    </executions>
+                                </plugin>
+                            </plugins>
+                        </gradleEnterprise>
+                    </configuration>
+                </plugin>
+                <plugin>
                     <groupId>io.github.evis</groupId>
                     <artifactId>scalafix-maven-plugin_2.13</artifactId>
                     <version>0.1.8_0.11.0</version>
@@ -3079,6 +3310,7 @@
                         <recompileMode>all</recompileMode>
                         <source>${target.jdk}</source>
                         <target>${target.jdk}</target>
+
                         <args>
                             <arg>-Xlog-implicits</arg>
                             <arg>-feature</arg>
@@ -3103,9 +3335,15 @@
                     </configuration>
                     <executions>
                         <execution>
-                            <id>scala-compile-first</id>
+                            <id>scala-compile-first-add-source</id>
                             <goals>
                                 <goal>add-source</goal>
+                            </goals>
+                            <phase>process-resources</phase>
+                        </execution>
+                        <execution>
+                            <id>scala-compile-first</id>
+                            <goals>
                                 <goal>compile</goal>
                             </goals>
                             <phase>process-resources</phase>
@@ -3322,7 +3560,8 @@
                         </systemPropertyVariables>
                         <argLine>-Djava.library.path=
                             -javaagent:"${settings.localRepository}"/org/jacoco/org.jacoco.agent/${jacoco-maven-plugin.version}/org.jacoco.agent-${jacoco-maven-plugin.version}-runtime.jar=destfile=${basedir}/target/jacoco.exec
-                            -Xms512m -Xmx1024m</argLine>
+                            -Xms512m -Xmx1024m
+                        </argLine>
                         <reuseForks>true</reuseForks>
                         <!-- Fail tests longer than 30 minutes, prevent form random locking tests -->
                         <forkedProcessTimeoutInSeconds>1800</forkedProcessTimeoutInSeconds>
@@ -3424,7 +3663,7 @@
                                         <execute>
                                             <runOnIncremental>false</runOnIncremental>
                                         </execute>
-                                        <ignore />
+                                        <ignore/>
                                     </action>
                                 </pluginExecution>
                                 <pluginExecution>
@@ -3440,7 +3679,7 @@
                                         <execute>
                                             <runOnIncremental>false</runOnIncremental>
                                         </execute>
-                                        <ignore />
+                                        <ignore/>
                                     </action>
                                 </pluginExecution>
                                 <pluginExecution>
@@ -3456,7 +3695,7 @@
                                         <execute>
                                             <runOnIncremental>false</runOnIncremental>
                                         </execute>
-                                        <ignore />
+                                        <ignore/>
                                     </action>
                                 </pluginExecution>
                                 <pluginExecution>
@@ -3470,7 +3709,7 @@
                                         </goals>
                                     </pluginExecutionFilter>
                                     <action>
-                                        <ignore />
+                                        <ignore/>
                                     </action>
                                 </pluginExecution>
                             </pluginExecutions>
@@ -3624,7 +3863,8 @@
                     <prefix>git</prefix>
                     <verbose>false</verbose>
                     <generateGitPropertiesFile>true</generateGitPropertiesFile>
-                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties
+                    </generateGitPropertiesFilename>
                     <format>json</format>
                     <includeOnlyProperties>
                         <includeOnlyProperty>git.commit.id</includeOnlyProperty>
@@ -3776,7 +4016,7 @@
                             <artifactId>maven-surefire-plugin</artifactId>
                             <version>3.1.2</version>
                             <configuration>
-                                <excludedGroups />
+                                <excludedGroups/>
                                 <groups>unstable</groups>
                             </configuration>
                         </plugin>
@@ -3829,8 +4069,11 @@
                                     <rules>
                                         <requireEnvironmentVariable>
                                             <variableName>JAMES_PARTIAL_BUILD_BASE_BRANCH</variableName>
-                                            <message>When using 'partial-build' profile, you need to define the 'JAMES_PARTIAL_BUILD_BASE_BRANCH'
-                                            environment variable defining which branch should be taken as a reference to detect changes.</message>
+                                            <message>When using 'partial-build' profile, you need to define the
+                                                'JAMES_PARTIAL_BUILD_BASE_BRANCH'
+                                                environment variable defining which branch should be taken as a
+                                                reference to detect changes.
+                                            </message>
                                         </requireEnvironmentVariable>
                                     </rules>
                                 </configuration>
