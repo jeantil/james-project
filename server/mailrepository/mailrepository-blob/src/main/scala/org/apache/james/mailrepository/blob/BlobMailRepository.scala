@@ -1,4 +1,4 @@
-/** **************************************************************
+/****************************************************************
  * Licensed to the Apache Software Foundation (ASF) under one   *
  * or more contributor license agreements.  See the NOTICE file *
  * distributed with this work for additional information        *
@@ -6,29 +6,30 @@
  * to you under the Apache License, Version 2.0 (the            *
  * "License"); you may not use this file except in compliance   *
  * with the License.  You may obtain a copy of the License at   *
- * *
- * http://www.apache.org/licenses/LICENSE-2.0                 *
- * *
+ *                                                              *
+ * http://www.apache.org/licenses/LICENSE-2.0                   *
+ *                                                              *
  * Unless required by applicable law or agreed to in writing,   *
  * software distributed under the License is distributed on an  *
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY       *
  * KIND, either express or implied.  See the License for the    *
  * specific language governing permissions and limitations      *
  * under the License.                                           *
- * ************************************************************** */
+ ****************************************************************/
 
 package org.apache.james.mailrepository.blob
 
 import com.google.common.collect.ImmutableMap
-import jakarta.mail.MessagingException
+import jakarta.mail.{MessagingException, Session}
 import jakarta.mail.internet.MimeMessage
 import org.apache.commons.lang3.StringUtils
+import org.apache.james.blob.api.BlobStore.StoragePolicy
 import org.apache.james.blob.api.BlobStore.StoragePolicy.SIZE_BASED
 import org.apache.james.blob.api._
 import org.apache.james.blob.mail.MimeMessagePartsId
 import org.apache.james.core.{MailAddress, MaybeSender}
 import org.apache.james.mailrepository.api.{MailKey, MailRepository, MailRepositoryUrl}
-import org.apache.james.server.core.MailImpl
+import org.apache.james.server.core.{MailImpl, MimeMessageInputStream}
 import org.apache.james.util.AuditTrail
 import org.apache.mailet._
 import play.api.libs.json.{Format, Json}
@@ -38,9 +39,8 @@ import reactor.util.function.Tuples
 
 import java.io.{ByteArrayInputStream, InputStream}
 import java.util
-import java.util.Date
+import java.util.{Date, Properties}
 import scala.jdk.CollectionConverters.IterableHasAsJava
-
 
 private[blob] object serializers {
   implicit val headerFormat: Format[Header] = Json.format[Header]
@@ -78,8 +78,30 @@ class BlobMailRepository(val mailMetaDataBlobStore: BlobStore,
 
   @throws[MessagingException]
   override def store(mc: Mail): MailKey = {
-    mimeMessageStore.save(mc.getMessage)
-      .flatMap(mimePartsIds => saveMailMetadata(mc, mimePartsIds))
+    val mailKey = MailKey.forMail(mc)
+    // The logical blobId that the rest of the system will know
+    val blobId = mailMetadataBlobIdFactory.of(mailKey.asString())
+    // By nesting both blobIds under the MailKey we don't need to save one
+    // before the other nor do we need one to know the blobId of the other
+    // Also I think we can delete them both using the prefix thus ensuring
+    // some kind of atomic deletion
+    // The downside of this change is that this new encoding is not backward
+    // compatible with the previous implementation ( breaking change )
+    val mimeMessageBlobId = mailMetadataBlobIdFactory.of(mailKey.asString() + "/mimeMessage")
+    val mailMetadataBlobId = mailMetadataBlobIdFactory.of(mailKey.asString() + "/mailMetadata")
+
+    // FIXME - We could save both in parallel but let's take this one step at a time
+    Mono.from(
+        mailMetaDataBlobStore.save(
+          mailMetaDataBlobStore.getDefaultBucketName,
+          new MimeMessageInputStream(mc.getMessage),
+          (in: InputStream) => SMono.just(Tuples.of(mimeMessageBlobId, in)),
+          StoragePolicy.LOW_COST
+        )
+      ).flatMap(_ =>
+        // FIXME - The MimeMessagePartsId are no longer necessary but we will get rid of them in the next step
+        saveMailMetadata(mc, MimeMessagePartsId.builder().headerBlobId(mailMetadataBlobId).bodyBlobId(mimeMessageBlobId).build())
+      )
       .doOnSuccess(_ => AuditTrail.entry
         .protocol("mailrepository")
         .action("store")
@@ -89,8 +111,8 @@ class BlobMailRepository(val mailMetaDataBlobStore: BlobStore,
             .getOrElse(""),
           "sender", mc.getMaybeSender.asString,
           "recipients", StringUtils.join(mc.getRecipients)))
-        .log("BlobMailRepository stored mail."))
-      .map(mailPartsId => mailPartsId.toMailKey)
+        .log(s"BlobMailRepository stored mail.${mc.getName}"))
+      .map(_ => new MailKey(blobId.asString()))
       .block()
   }
 
@@ -99,8 +121,7 @@ class BlobMailRepository(val mailMetaDataBlobStore: BlobStore,
 
     val mailMetadata = MailMetadata.of(mail, partsIds)
     val payload = Json.stringify(Json.toJson(mailMetadata))
-    val mailKey = MailKey.forMail(mail)
-    val blobId = mailMetadataBlobIdFactory.of(mailKey.asString())
+    val blobId = partsIds.getHeaderBlobId
 
     SMono.fromPublisher(
       mailMetaDataBlobStore.save(
@@ -118,34 +139,48 @@ class BlobMailRepository(val mailMetaDataBlobStore: BlobStore,
       .block()
 
   @throws[MessagingException]
-  override def list: util.Iterator[MailKey] =
+  override def list: util.Iterator[MailKey] = {
     listMailRepositoryBlobs
       .map[MailKey](blobId => new MailKey(blobId.asString))
       .toIterable
       .iterator
+  }
 
   private def listMailRepositoryBlobs = {
     Flux.from(mailMetaDataBlobStore.listBlobs(mailMetaDataBlobStore.getDefaultBucketName))
       .filter(this.belongsToMailRepository)
+      // we filter only on mime message keys to avoid duplicates
+      .filter(id=>id.asString().endsWith("/mimeMessage"))
+      .map(id => mailMetadataBlobIdFactory.parse(id.asString().stripSuffix("/mimeMessage")))
   }
 
   private def belongsToMailRepository(blobId: BlobId): Boolean =
     blobId.asString().startsWith(url.getPath.asString())
 
   @throws[MessagingException]
-  override def retrieve(key: MailKey): Mail =
-    readMailMetadata(mailMetadataBlobIdFactory.parse(key.asString()))
+  override def retrieve(key: MailKey): Mail = {
+    // FIXME - construction should be factorized
+    readMailMetadata(mailMetadataBlobIdFactory.parse(key.asString() + "/mailMetadata"))
       .flatMap { value =>
-        val mimeMessagePartsId = value.mimePartsId(mailMetadataBlobIdFactory)
         val mail = readMail(value)
-        SMono(mimeMessageStore.read(mimeMessagePartsId).map { mimeMessage =>
+        SMono.fromCallable(()=>
+          mailMetaDataBlobStore.read(
+            mailMetaDataBlobStore.getDefaultBucketName,
+            mailMetadataBlobIdFactory.parse(key.asString() + "/mimeMessage")
+          )
+        ).using(
+          in => SMono.just(new MimeMessage(Session.getInstance(new Properties()), in))
+        )(
+          _.close
+        ).map { mimeMessage =>
           mail.setMessage(mimeMessage)
           mail
-        })
+        }
       }
-      .onErrorResume(_=>SMono.empty)
+      .onErrorResume(e => SMono.empty)
       .blockOption()
       .orNull
+  }
 
   private def readMailMetadata(blobId: BlobId): SMono[MailMetadata] = {
     import serializers._
@@ -192,22 +227,22 @@ class BlobMailRepository(val mailMetaDataBlobStore: BlobStore,
   @throws[MessagingException]
   override def remove(key: MailKey): Unit = {
     remove(mailMetadataBlobIdFactory.parse(key.asString()))
-      .onErrorResume(_=>SMono.empty)
+      .onErrorResume(_ => SMono.empty)
       .block()
   }
 
   private def remove(blobId: BlobId): SMono[Unit] =
     for {
-      mimeMessagePartsId <- readMailMetadata(blobId).map { it => it.mimePartsId(mailMetadataBlobIdFactory) }
-      _ <- SMono(mailMetaDataBlobStore.delete(mailMetaDataBlobStore.getDefaultBucketName, blobId))
-      _ <- SMono(mimeMessageStore.delete(mimeMessagePartsId))
+      _ <- SMono(mailMetaDataBlobStore.delete(mailMetaDataBlobStore.getDefaultBucketName, mailMetadataBlobIdFactory.parse(blobId.asString() + "/mailMetadata")))
+      _ <- SMono(mailMetaDataBlobStore.delete(mailMetaDataBlobStore.getDefaultBucketName, mailMetadataBlobIdFactory.parse(blobId.asString() + "/mimeMessage")))
     } yield ()
 
 
   @throws[MessagingException]
   override def removeAll(): Unit = {
-    listMailRepositoryBlobs
-      .flatMap(blobId => this.remove(blobId))
+    Flux.from(mailMetaDataBlobStore.listBlobs(mailMetaDataBlobStore.getDefaultBucketName))
+      .filter(this.belongsToMailRepository)
+      .flatMap(blobId => mailMetaDataBlobStore.delete(mailMetaDataBlobStore.getDefaultBucketName,blobId))
       .blockLast()
   }
 }
