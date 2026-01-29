@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance   *
  * with the License.  You may obtain a copy of the License at   *
  *                                                              *
- *   http://www.apache.org/licenses/LICENSE-2.0                 *
+ * http://www.apache.org/licenses/LICENSE-2.0                   *
  *                                                              *
  * Unless required by applicable law or agreed to in writing,   *
  * software distributed under the License is distributed on an  *
@@ -20,17 +20,16 @@
 package org.apache.james.mailrepository.blob
 
 import com.google.common.collect.ImmutableMap
-import jakarta.mail.MessagingException
+import jakarta.mail.{MessagingException, Session}
 import jakarta.mail.internet.MimeMessage
 import org.apache.commons.lang3.StringUtils
-import org.apache.commons.lang3.tuple.Pair
+import org.apache.james.blob.api.BlobStore.StoragePolicy
 import org.apache.james.blob.api.BlobStore.StoragePolicy.SIZE_BASED
-import org.apache.james.blob.api.Store.Impl
 import org.apache.james.blob.api._
 import org.apache.james.blob.mail.MimeMessagePartsId
 import org.apache.james.core.{MailAddress, MaybeSender}
 import org.apache.james.mailrepository.api.{MailKey, MailRepository, MailRepositoryUrl}
-import org.apache.james.server.core.MailImpl
+import org.apache.james.server.core.{MailImpl, MimeMessageInputStream}
 import org.apache.james.util.AuditTrail
 import org.apache.mailet._
 import play.api.libs.json.{Format, Json}
@@ -40,11 +39,8 @@ import reactor.util.function.Tuples
 
 import java.io.{ByteArrayInputStream, InputStream}
 import java.util
-import java.util.Date
-import java.util.stream.Stream
+import java.util.{Date, Properties}
 import scala.jdk.CollectionConverters.IterableHasAsJava
-import scala.jdk.StreamConverters._
-
 
 private[blob] object serializers {
   implicit val headerFormat: Format[Header] = Json.format[Header]
@@ -69,78 +65,6 @@ object BlobMailRepository {
 
     def toMailKey: MailKey = new MailKey(metadataBlobId.asString())
   }
-
-  private[blob] class MailEncoder private[blob](blobIdFactory: MailRepositoryBlobIdFactory)
-    extends Impl.Encoder[(Mail, MimeMessagePartsId)] {
-
-    import serializers._
-
-    override def encode(mailAndPartsId: (Mail, MimeMessagePartsId)): Stream[Pair[BlobType, Impl.ValueToSave]] = {
-      val (mail, partsIds) = mailAndPartsId
-      val mailMetadata = MailMetadata.of(mail, partsIds)
-      val payload = Json.stringify(Json.toJson(mailMetadata))
-      val mailKey = MailKey.forMail(mail)
-
-      val blobId = blobIdFactory.of(mailKey.asString())
-
-      val save: Impl.ValueToSave = (bucketName, blobStore) =>
-        Mono.from(blobStore.save(
-          bucketName,
-          new ByteArrayInputStream(payload.getBytes),
-          (data:InputStream)=>SMono.just(Tuples.of(blobId,data)).asJava(),
-          BlobStore.StoragePolicy.SIZE_BASED
-        ))
-
-      LazyList(Pair.of(MailPartsId.METADATA_BLOB_TYPE, save)).asJavaSeqStream
-    }
-  }
-
-  private[blob] class MailDecoder private[blob](blobIdFactory: BlobId.Factory)
-    extends Impl.Decoder[(Mail, MimeMessagePartsId)] {
-
-    private def readMail(mailMetadata: MailMetadata): Mail = {
-      val builder = MailImpl.builder
-        .name(mailMetadata.name)
-        .sender(mailMetadata.sender.map(MaybeSender.getMailSender).getOrElse(MaybeSender.nullSender))
-        .addRecipients(mailMetadata.recipients.map(new MailAddress(_)).asJavaCollection)
-        .remoteAddr(mailMetadata.remoteAddr)
-        .remoteHost(mailMetadata.remoteHost)
-
-      mailMetadata.state.foreach(builder.state)
-      mailMetadata.errorMessage.foreach(builder.errorMessage)
-
-      mailMetadata.lastUpdated.map(Date.from).foreach(builder.lastUpdated)
-
-      mailMetadata.attributes.foreach { case (name, value) => builder.addAttribute(new Attribute(AttributeName.of(name), AttributeValue.fromJsonString(value))) }
-
-      builder.addAllHeadersForRecipients(retrievePerRecipientHeaders(mailMetadata.perRecipientHeaders))
-
-      builder.build
-    }
-
-
-    private def retrievePerRecipientHeaders(perRecipientHeaders: Map[String, Iterable[Header]]): PerRecipientHeaders = {
-      val result = new PerRecipientHeaders()
-      perRecipientHeaders.foreach { case (key, value) =>
-        value.foreach(headers => {
-          headers.values.foreach(header => {
-            val builder = PerRecipientHeaders.Header.builder().name(headers.key).value(header)
-            result.addHeaderForRecipient(builder, new MailAddress(key))
-          })
-        })
-      }
-      result
-    }
-
-
-    import serializers._
-
-    override def decode(streams: util.Map[BlobType, Store.CloseableByteSource]): (Mail, MimeMessagePartsId) = {
-      val source = streams.get(MailPartsId.METADATA_BLOB_TYPE)
-      val value = Json.fromJson[MailMetadata](Json.parse(source.openStream())).get
-      (readMail(value), value.mimePartsId(blobIdFactory))
-    }
-  }
 }
 
 class BlobMailRepository(val mailMetaDataBlobStore: BlobStore,
@@ -153,9 +77,31 @@ class BlobMailRepository(val mailMetaDataBlobStore: BlobStore,
 
 
   @throws[MessagingException]
-  override def store(mc: Mail): MailKey =
-    mimeMessageStore.save(mc.getMessage)
-      .flatMap(mimePartsId => mailMetadataStore.save((mc, mimePartsId)))
+  override def store(mc: Mail): MailKey = {
+    val mailKey = MailKey.forMail(mc)
+    // The logical blobId that the rest of the system will know
+    val blobId = mailMetadataBlobIdFactory.of(mailKey.asString())
+    // By nesting both blobIds under the MailKey we don't need to save one
+    // before the other nor do we need one to know the blobId of the other
+    // Also I think we can delete them both using the prefix thus ensuring
+    // some kind of atomic deletion
+    // The downside of this change is that this new encoding is not backward
+    // compatible with the previous implementation ( breaking change )
+    val mimeMessageBlobId = mailMetadataBlobIdFactory.of(mailKey.asString() + "/mimeMessage")
+    val mailMetadataBlobId = mailMetadataBlobIdFactory.of(mailKey.asString() + "/mailMetadata")
+
+    // FIXME - We could save both in parallel but let's take this one step at a time
+    Mono.from(
+        mailMetaDataBlobStore.save(
+          mailMetaDataBlobStore.getDefaultBucketName,
+          new MimeMessageInputStream(mc.getMessage),
+          (in: InputStream) => SMono.just(Tuples.of(mimeMessageBlobId, in)),
+          StoragePolicy.LOW_COST
+        )
+      ).flatMap(_ =>
+        // FIXME - The MimeMessagePartsId are no longer necessary but we will get rid of them in the next step
+        saveMailMetadata(mc, MimeMessagePartsId.builder().headerBlobId(mailMetadataBlobId).bodyBlobId(mimeMessageBlobId).build())
+      )
       .doOnSuccess(_ => AuditTrail.entry
         .protocol("mailrepository")
         .action("store")
@@ -165,70 +111,138 @@ class BlobMailRepository(val mailMetaDataBlobStore: BlobStore,
             .getOrElse(""),
           "sender", mc.getMaybeSender.asString,
           "recipients", StringUtils.join(mc.getRecipients)))
-        .log("BlobMailRepository stored mail."))
-      .map(mailPartsId => mailPartsId.toMailKey)
+        .log(s"BlobMailRepository stored mail.${mc.getName}"))
+      .map(_ => new MailKey(blobId.asString()))
       .block()
+  }
+
+  private def saveMailMetadata(mail: Mail, partsIds: MimeMessagePartsId): Mono[MailPartsId] = {
+    import serializers._
+
+    val mailMetadata = MailMetadata.of(mail, partsIds)
+    val payload = Json.stringify(Json.toJson(mailMetadata))
+    val blobId = partsIds.getHeaderBlobId
+
+    SMono.fromPublisher(
+      mailMetaDataBlobStore.save(
+        mailMetaDataBlobStore.getDefaultBucketName,
+        new ByteArrayInputStream(payload.getBytes),
+        (data: InputStream) => SMono.just(Tuples.of(blobId, data)).asJava(),
+        BlobStore.StoragePolicy.SIZE_BASED)
+    ).map(it => MailPartsId(it)).asJava()
+  }
 
   @throws[MessagingException]
   override def size: Long =
-    Flux.from(mailMetaDataBlobStore.listBlobs(mailMetaDataBlobStore.getDefaultBucketName))
-    .filter(this.belongsToMailRepository)
-    .count()
-    .block()
+    listMailRepositoryBlobs
+      .count()
+      .block()
 
   @throws[MessagingException]
-  override def list: util.Iterator[MailKey] =
+  override def list: util.Iterator[MailKey] = {
+    listMailRepositoryBlobs
+      .map[MailKey](blobId => new MailKey(blobId.asString))
+      .toIterable
+      .iterator
+  }
+
+  private def listMailRepositoryBlobs = {
     Flux.from(mailMetaDataBlobStore.listBlobs(mailMetaDataBlobStore.getDefaultBucketName))
-    .filter(this.belongsToMailRepository)
-    .map[MailKey](blobId => new MailKey(blobId.asString))
-    .toIterable
-    .iterator
+      .filter(this.belongsToMailRepository)
+      // we filter only on mime message keys to avoid duplicates
+      .filter(id=>id.asString().endsWith("/mimeMessage"))
+      .map(id => mailMetadataBlobIdFactory.parse(id.asString().stripSuffix("/mimeMessage")))
+  }
 
   private def belongsToMailRepository(blobId: BlobId): Boolean =
     blobId.asString().startsWith(url.getPath.asString())
 
   @throws[MessagingException]
   override def retrieve(key: MailKey): Mail = {
-    mailMetadataStore.read(MailPartsId(mailMetadataBlobIdFactory.parse(key.asString())))
-      .flatMap {
-        case (mail, mimeMessagePartsId) => mimeMessageStore.read(mimeMessagePartsId).map { mimeMessage =>
+    // FIXME - construction should be factorized
+    readMailMetadata(mailMetadataBlobIdFactory.parse(key.asString() + "/mailMetadata"))
+      .flatMap { value =>
+        val mail = readMail(value)
+        SMono.fromCallable(()=>
+          mailMetaDataBlobStore.read(
+            mailMetaDataBlobStore.getDefaultBucketName,
+            mailMetadataBlobIdFactory.parse(key.asString() + "/mimeMessage")
+          )
+        ).using(
+          in => SMono.just(new MimeMessage(Session.getInstance(new Properties()), in))
+        )(
+          _.close
+        ).map { mimeMessage =>
           mail.setMessage(mimeMessage)
-          Some(mail): Option[Mail]
+          mail
         }
       }
-      .onErrorReturn(None)
-      .block()
+      .onErrorResume(e => SMono.empty)
+      .blockOption()
       .orNull
+  }
+
+  private def readMailMetadata(blobId: BlobId): SMono[MailMetadata] = {
+    import serializers._
+
+    SMono.fromCallable(() => mailMetaDataBlobStore.read(mailMetaDataBlobStore.getDefaultBucketName, blobId))
+      .using(
+        source => SMono.just(Json.fromJson[MailMetadata](Json.parse(source)).get)
+      )(in => in.close())
+  }
+
+  private def readMail(mailMetadata: MailMetadata): Mail = {
+    val builder = MailImpl.builder
+      .name(mailMetadata.name)
+      .sender(mailMetadata.sender.map(MaybeSender.getMailSender).getOrElse(MaybeSender.nullSender))
+      .addRecipients(mailMetadata.recipients.map(new MailAddress(_)).asJavaCollection)
+      .remoteAddr(mailMetadata.remoteAddr)
+      .remoteHost(mailMetadata.remoteHost)
+
+    mailMetadata.state.foreach(builder.state)
+    mailMetadata.errorMessage.foreach(builder.errorMessage)
+
+    mailMetadata.lastUpdated.map(Date.from).foreach(builder.lastUpdated)
+
+    mailMetadata.attributes.foreach { case (name, value) => builder.addAttribute(new Attribute(AttributeName.of(name), AttributeValue.fromJsonString(value))) }
+
+    builder.addAllHeadersForRecipients(retrievePerRecipientHeaders(mailMetadata.perRecipientHeaders))
+
+    builder.build
+  }
+
+  private def retrievePerRecipientHeaders(perRecipientHeaders: Map[String, Iterable[Header]]): PerRecipientHeaders = {
+    val result = new PerRecipientHeaders()
+    perRecipientHeaders.foreach { case (key, value) =>
+      value.foreach(headers => {
+        headers.values.foreach(header => {
+          val builder = PerRecipientHeaders.Header.builder().name(headers.key).value(header)
+          result.addHeaderForRecipient(builder, new MailAddress(key))
+        })
+      })
+    }
+    result
   }
 
   @throws[MessagingException]
   override def remove(key: MailKey): Unit = {
-    val mailMetadataId: MailPartsId = MailPartsId(mailMetadataBlobIdFactory.parse(key.asString()))
-    remove(mailMetadataId).block()
+    remove(mailMetadataBlobIdFactory.parse(key.asString()))
+      .onErrorResume(_ => SMono.empty)
+      .block()
   }
 
-  private def remove(mailMetadataId: MailPartsId): SMono[Unit] =
+  private def remove(blobId: BlobId): SMono[Unit] =
     for {
-      maybeMimeMessagePartsId <- SMono(mailMetadataStore.read(mailMetadataId))
-        .map { case ((_, mimeMessagePartsId)) => Some(mimeMessagePartsId) }
-        .onErrorRecover(_ => None)
-      _ <- SMono(mailMetadataStore.delete(mailMetadataId))
-      _ <- SMono(maybeMimeMessagePartsId.map(mimeMessagePartsId => mimeMessageStore.delete(mimeMessagePartsId)).getOrElse(SMono.empty))
+      _ <- SMono(mailMetaDataBlobStore.delete(mailMetaDataBlobStore.getDefaultBucketName, mailMetadataBlobIdFactory.parse(blobId.asString() + "/mailMetadata")))
+      _ <- SMono(mailMetaDataBlobStore.delete(mailMetaDataBlobStore.getDefaultBucketName, mailMetadataBlobIdFactory.parse(blobId.asString() + "/mimeMessage")))
     } yield ()
 
 
   @throws[MessagingException]
   override def removeAll(): Unit = {
     Flux.from(mailMetaDataBlobStore.listBlobs(mailMetaDataBlobStore.getDefaultBucketName))
-      .flatMap(blobId => this.remove(MailPartsId(blobId)))
+      .filter(this.belongsToMailRepository)
+      .flatMap(blobId => mailMetaDataBlobStore.delete(mailMetaDataBlobStore.getDefaultBucketName,blobId))
       .blockLast()
   }
-
-  private val mailMetadataStore = new Store.Impl[(Mail, MimeMessagePartsId), BlobMailRepository.MailPartsId](
-    new MailPartsId.Factory,
-    new BlobMailRepository.MailEncoder(mailMetadataBlobIdFactory),
-    new BlobMailRepository.MailDecoder(mailMetadataBlobIdFactory),
-    mailMetaDataBlobStore,
-    mailMetaDataBlobStore.getDefaultBucketName
-  )
 }
