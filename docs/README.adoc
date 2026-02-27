@@ -1,1 +1,1 @@
-docs/modules/community/partials/antora.adoc
+modules/community/partials/antora.adoc
